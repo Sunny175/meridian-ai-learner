@@ -1,0 +1,79 @@
+name: Stop Vector Search
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: "Confirm undeploying the Vector Search deployment (index data will be preserved)"
+        required: true
+        type: choice
+        options:
+          - "No - cancel"
+          - "Yes - stop Vector Search serving"
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  REGION: us-central1
+  ENDPOINT_NAME: financial-docs-endpoint
+  DEPLOYED_INDEX_ID: deployed_financial_docs
+
+jobs:
+  undeploy:
+    name: Undeploy Vector Search
+    if: ${{ inputs.confirm == 'Yes - stop Vector Search serving' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v7
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v3
+        with:
+          credentials_json: ${{ secrets.GCP_CREDENTIALS_JSON }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v3
+        with:
+          project_id: ${{ env.PROJECT_ID }}
+
+      - name: Undeploy Vector Search Index
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          endpoint_id=$(gcloud ai index-endpoints list \
+            --project="$PROJECT_ID" \
+            --region="$REGION" \
+            --filter="displayName=$ENDPOINT_NAME" \
+            --format="value(name)" \
+            --limit=1)
+
+          if [[ -z "$endpoint_id" ]]; then
+            echo "Vector Search endpoint not found; nothing to undeploy."
+            exit 0
+          fi
+
+          deployed_ids=$(gcloud ai index-endpoints describe "$endpoint_id" \
+            --project="$PROJECT_ID" \
+            --region="$REGION" \
+            --format="value(deployedIndexes.id)")
+
+          if ! grep -Fxq "$DEPLOYED_INDEX_ID" <<< "$deployed_ids"; then
+            echo "Index is not deployed; nothing to undeploy."
+            exit 0
+          fi
+
+          gcloud ai index-endpoints undeploy-index "$endpoint_id" \
+            --project="$PROJECT_ID" \
+            --region="$REGION" \
+            --deployed-index-id="$DEPLOYED_INDEX_ID" \
+            --quiet
+
+          echo "Vector Search serving has been undeployed. The index, endpoint, and stored data were preserved."
