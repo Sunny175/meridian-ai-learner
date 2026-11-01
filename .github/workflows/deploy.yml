@@ -3,7 +3,7 @@ name: Deploy to GCP Cloud Run
 on:
   push:
     branches:
-      - main
+      - develop
   workflow_dispatch:
 
 # One deploy at a time: a second run waits instead of racing the first.
