@@ -1,9 +1,6 @@
 name: Deploy to GCP Cloud Run
 
 on:
-  pull_request:
-    branches:
-      - main
   workflow_dispatch:
 
 # One deploy at a time: a second run waits instead of racing the first.
@@ -25,6 +22,7 @@ jobs:
   deploy:
     name: Provision & Deploy
     runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/develop'
 
     steps:
       - name: Checkout Repository
