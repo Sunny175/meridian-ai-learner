@@ -412,6 +412,8 @@ The GitHub Action ([.github/workflows/deploy.yml](.github/workflows/deploy.yml))
 
 Once complete, the Action logs will print your live Cloud Run URL. Your application is now fully automated and live! 🚀
 
+To stop Vector Search serving compute while preserving the index and its data, manually run the **Stop Vector Search** workflow from the GitHub Actions tab and confirm the prompt. The Cloud Run app will no longer be able to use Vector Search until the deployment workflow runs again. This does not delete the index, endpoint, Cloud Run service, storage bucket, container images, or secrets; those resources may still incur charges.
+
 ---
 
 ## Settings
